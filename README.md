@@ -7,6 +7,10 @@
 
 [//]: # (**PDL Regressor** or PDR is a meta learner that solves regression problem by learning the difference.)
 
+[<img src="https://github.com/user-attachments/assets/e15057cf-fef8-4061-8bb9-611adde0128b" width="70%">](https://youtu.be/5Yl6yFiNK3U?si=SXuRrO3mibD188xF "Learn more about PDL on youtube")
+
+
+
 ## Installation
 To install the package, run the following command:
 ```shell
@@ -294,7 +298,7 @@ Please cite us if you use this library in your research:
 @article{belaid2024pairwise,
   title={Pairwise Difference Learning for Classification},
   author={Belaid, Mohamed Karim and Rabus, Maximilian and H{\"u}llermeier, Eyke},
-  journal={arXiv preprint arXiv:2406.20031},
+  journal={Discovery Science},
   year={2024}
 }
 ```
