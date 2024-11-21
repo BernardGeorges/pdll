@@ -1,7 +1,7 @@
 """Pairwise idea 4: PDC for binary and multi class classification"""
 import gc
 from joblib.externals.loky.process_executor import TerminatedWorkerError
-from numpy.core._exceptions import _ArrayMemoryError
+#from numpy.core._exceptions import _ArrayMemoryError
 from scipy.sparse import csr_matrix
 import inspect
 from datetime import timedelta
@@ -42,7 +42,7 @@ def get_multi_class_datasets(number_instances_minimum=21, cmd_dataset_id=None):
         (datasets.format != 'Sparse_ARFF')
     ].sort_values(['NumberOfInstances', 'NumberOfFeatures'], ascending=True,)
     if HYPER_PARAM_OPT:
-        subsampled_datasets = subsampled_datasets.iloc[-2 * DATASET_SIZE_PAPER::2]
+        subsampled_datasets = subsampled_datasets.iloc[:50]
     # subsampled_datasets = conditioned_datasets.sort_values(['NumberOfFeatures', 'NumberOfInstances']).groupby('n').first()
     # subsampled_datasets.index = subsampled_datasets.data_id
     # assert subsampled_datasets.NumberOfInstances.max() >= 10000, subsampled_datasets.NumberOfInstances.max()
@@ -278,7 +278,7 @@ def safe_cross_validate(model, n_jobs=-1, param_grid=None) -> dict:
                                      error_score='raise',
                                      verbose=100 if isinstance(model, PairwiseDifferenceClassifier) else 1,
                                      )
-        except (_ArrayMemoryError, TerminatedWorkerError, MemoryError) as e:
+        except (TerminatedWorkerError, MemoryError) as e:
             if n_jobs_cv is None or n_jobs_cv <= 1:
                 raise
             last_exception = e
@@ -433,9 +433,9 @@ if __name__ == '__main__':
                     get_base_classifier(classifier_name, for_pdc=True)), n_jobs, param_grid))
                 assert len(results) > 0 or not pd.isna(result['pdc_test_f1']), 'The first PDC fit failed, probably something to debug.'
                 result['data_time'] = time.time() - data_t0
-            except np.core._exceptions._ArrayMemoryError as e:
-                print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
-                continue
+            #except np.core._exceptions._ArrayMemoryError as e:
+            #    print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
+            #    continue
             except Exception as e:
                 raise
                 if len(results) == 0:

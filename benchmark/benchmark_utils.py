@@ -45,7 +45,7 @@ def decode_args():
 
 
 args = decode_args()
-HYPER_PARAM_OPT = True or args['hyper']
+HYPER_PARAM_OPT = False
 DATASET_SIZE_PAPER = 100 if HYPER_PARAM_OPT else 450
 INNER_FOLDS = 3
 REPEATS = 5
