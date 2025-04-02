@@ -29,8 +29,11 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
     Base class for Pairwise Difference Learning.
     """
 
+    #modify this function to have only one pair, being unordered
+    #verify if this makes sense without the absolute values
+    #add unit tests
     @staticmethod
-    def pair_input(X1, X2):  # -> tuple[pd.DataFrame, pd.DataFrame]:
+    def pair_input(X1, X2):  # -> pd.DataFrame:
         X_pair = X1.merge(X2, how="cross")
         x1_pair = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_diff' for column in X1.columns})
         x2_pair = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_diff' for column in X1.columns})
@@ -40,15 +43,10 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
         except:
             raise ValueError("PairwiseDifference: The input data is not compatible with the subtraction operation. Either transform all data to numeric features or use a ColumnTransformer to transform the data.")
         # It means that the input data is not compatible with the subtraction operation.
-        # Simply turn all your data into numbers
-
+        
         X_pair = pd.concat([X_pair, calculate_difference], axis='columns')
-        # Symmetric
-        x2_pair_sym = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_y' for column in X1.columns})
-        x1_pair_sym = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_x' for column in X1.columns})
-        X_pair_sym = pd.concat([x1_pair_sym, x2_pair_sym, x2_pair - x1_pair], axis='columns')
 
-        return X_pair, X_pair_sym
+        return X_pair
 
     @staticmethod
     def pair_output(y1: pd.Series, y2: pd.Series) -> pd.Series:
@@ -229,7 +227,7 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         self.feature_names_in_ = X.columns
         self.nb_classes_ = self.y_train_.nunique()
         self._estimate_prior()
-        X_pair, _ = PairwiseDifferenceBase.pair_input(self.X_train_, self.X_train_)
+        X_pair = PairwiseDifferenceBase.pair_input(self.X_train_, self.X_train_)
         y_pair_diff = PairwiseDifferenceBase.pair_output_difference(self.y_train_, self.y_train_, self.nb_classes_)
         # todo add assert on y_pair_diff: min<0  , max>0 and dtype float not uint
         self.estimator.fit(X_pair, y_pair_diff)
@@ -248,7 +246,7 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         if self.check_input:
             PairwiseDifferenceBase.check_input(X)
 
-        X_pair, X_pair_sym = PairwiseDifferenceBase.pair_input(X, X_anchors)
+        X_pair = PairwiseDifferenceBase.pair_input(X, X_anchors)
         if hasattr(self.estimator, 'predict_proba'):
             predict_proba = self.estimator.predict_proba
         else:
@@ -261,19 +259,19 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
                 return proba
 
         predictions_proba_difference: np.ndarray = predict_proba(X_pair)
-        predictions_proba_difference_sym: np.ndarray = predict_proba(X_pair_sym)
+        # predictions_proba_difference_sym: np.ndarray = predict_proba(X_pair_sym)
         assert isinstance(predictions_proba_difference, np.ndarray), type(predictions_proba_difference)
         np.testing.assert_array_equal(predictions_proba_difference.shape, (len(X_pair), 2))
         predictions_proba_similarity_ab = predictions_proba_difference[:, 0]
-        predictions_proba_similarity_ba = predictions_proba_difference_sym[:, 0]
-        predictions_proba_similarity = (predictions_proba_similarity_ab + predictions_proba_similarity_ba) / 2.
+        #predictions_proba_similarity_ba = predictions_proba_difference_sym[:, 0]
+        #predictions_proba_similarity = (predictions_proba_similarity_ab + predictions_proba_similarity_ba) / 2.
         if not reshape:
-            return predictions_proba_similarity
+            return predictions_proba_similarity_ab
         else:
-            predictions_proba_similarity_df = pd.DataFrame(
-                predictions_proba_similarity.reshape((-1, len(self.X_train_))),
+            predictions_proba_similarity_ab_df = pd.DataFrame(
+                predictions_proba_similarity_ab.reshape((-1, len(self.X_train_))),
                 index=X.index, columns=self.X_train_.index)
-            return predictions_proba_similarity_df
+            return predictions_proba_similarity_ab_df
 
     def predict_samples(self, X: pd.DataFrame) -> pd.DataFrame:
         raise NotImplementedError('todo use predict_proba_samples to get the prediction here')
@@ -491,10 +489,6 @@ class PairwiseDifferenceRegressor(sklearn.base.BaseEstimator, sklearn.base.Regre
         x1_pair = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_diff' for column in X1.columns})
         x2_pair = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_diff' for column in X1.columns})
         X_pair = pd.concat([X_pair, x1_pair - x2_pair], axis='columns')
-        # Symmetric
-        x2_pair_sym = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_y' for column in X1.columns})
-        x1_pair_sym = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_x' for column in X1.columns})
-        X_pair_sym = pd.concat([x1_pair_sym, x2_pair_sym, x2_pair - x1_pair], axis='columns')
 
         if y1 is not None:
             assert isinstance(y1, pd.Series) or y1.shape[1] == 1, f"Didn't expect more than one output {y1.shape}"
@@ -505,7 +499,7 @@ class PairwiseDifferenceRegressor(sklearn.base.BaseEstimator, sklearn.base.Regre
         else:
             y_pair_diff = None
 
-        return X_pair, X_pair_sym, y_pair_diff
+        return X_pair, y_pair_diff
 
     @staticmethod
     def _get_pair_feature_names(features: list) -> list:
@@ -547,7 +541,7 @@ class PairwiseDifferenceRegressor(sklearn.base.BaseEstimator, sklearn.base.Regre
         assert len(X.shape) == 2
 
         # Create pairs of the new instance each anchor (training instance)
-        X_pair, X_pair_sym, _ = self._pair_data(X, self.X_train_, None, None)
+        X_pair, _ = self._pair_data(X, self.X_train_, None, None)
         assert isinstance(self.y_train_, (pd.Series, pd.DataFrame)), type(self.y_train_)
 
         def repeat(s: pd.Series, n_times: int):
@@ -556,9 +550,6 @@ class PairwiseDifferenceRegressor(sklearn.base.BaseEstimator, sklearn.base.Regre
         # Estimator predicts the difference between each anchor (training instance) and each prediction instance:
         predictions_difference: np.ndarray = self.estimator.predict(X_pair)
         assert isinstance(predictions_difference, np.ndarray), type(predictions_difference)
-        if force_symmetry:
-            difference_sym: np.ndarray = self.estimator.predict(X_pair_sym)
-            predictions_difference = (predictions_difference - difference_sym) / 2.
 
         # The known y for the training instances
         predictions_start: np.ndarray = repeat(self.y_train_, n_times=len(X))
