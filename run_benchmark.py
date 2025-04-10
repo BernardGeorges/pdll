@@ -1,7 +1,7 @@
 """Pairwise idea 4: PDC for binary and multi class classification"""
 import gc
 from joblib.externals.loky.process_executor import TerminatedWorkerError
-from numpy.core._exceptions import _ArrayMemoryError
+#from numpy.core._exceptions import _ArrayMemoryError
 from scipy.sparse import csr_matrix
 import inspect
 from datetime import timedelta
@@ -278,7 +278,7 @@ def safe_cross_validate(model, n_jobs=-1, param_grid=None) -> dict:
                                      error_score='raise',
                                      verbose=100 if isinstance(model, PairwiseDifferenceClassifier) else 1,
                                      )
-        except (_ArrayMemoryError, TerminatedWorkerError, MemoryError) as e:
+        except (TerminatedWorkerError, MemoryError) as e:
             if n_jobs_cv is None or n_jobs_cv <= 1:
                 raise
             last_exception = e
@@ -423,7 +423,7 @@ if __name__ == '__main__':
 
                 pbar.set_description(f"{description} base size {X.shape}")
                 scoring_dict = get_scoring_dict(number_classes, model=get_base_classifier(classifier_name))
-                n_jobs = get_optimal_n_jobs(classifier_name)
+                n_jobs = 1
                 result.update(safe_cross_validate(get_base_classifier(classifier_name), n_jobs, param_grid))
                 # assert len(results) > 0 or not pd.isna(result['base_test_f1']), 'The first Base fit failed, probably something to debug.'
 
@@ -433,9 +433,9 @@ if __name__ == '__main__':
                     get_base_classifier(classifier_name, for_pdc=True)), n_jobs, param_grid))
                 assert len(results) > 0 or not pd.isna(result['pdc_test_f1']), 'The first PDC fit failed, probably something to debug.'
                 result['data_time'] = time.time() - data_t0
-            except np.core._exceptions._ArrayMemoryError as e:
-                print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
-                continue
+            #except np.core._exceptions._ArrayMemoryError as e:
+            #    print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
+            #    continue
             except Exception as e:
                 raise
                 if len(results) == 0:
