@@ -423,7 +423,7 @@ if __name__ == '__main__':
 
                 pbar.set_description(f"{description} base size {X.shape}")
                 scoring_dict = get_scoring_dict(number_classes, model=get_base_classifier(classifier_name))
-                n_jobs = 1
+                n_jobs = get_optimal_n_jobs(classifier_name)
                 result.update(safe_cross_validate(get_base_classifier(classifier_name), n_jobs, param_grid))
                 # assert len(results) > 0 or not pd.isna(result['base_test_f1']), 'The first Base fit failed, probably something to debug.'
 
