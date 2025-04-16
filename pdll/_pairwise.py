@@ -42,11 +42,11 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
         # It means that the input data is not compatible with the subtraction operation.
         # Simply turn all your data into numbers
 
-        X_pair = pd.concat([X_pair, calculate_difference], axis='columns')
-        # Symmetric
-        x2_pair_sym = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_y' for column in X1.columns})
-        x1_pair_sym = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_x' for column in X1.columns})
-        X_pair_sym = pd.concat([x1_pair_sym, x2_pair_sym, x2_pair - x1_pair], axis='columns')
+        #X_pair = pd.concat([X_pair, calculate_difference], axis='columns')
+        ## Symmetric
+        #x2_pair_sym = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_y' for column in X1.columns})
+        #x1_pair_sym = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_x' for column in X1.columns})
+        #X_pair_sym = pd.concat([x1_pair_sym, x2_pair_sym, x2_pair - x1_pair], axis='columns')
 
         return calculate_difference
 
