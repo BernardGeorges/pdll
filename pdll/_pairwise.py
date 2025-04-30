@@ -28,7 +28,7 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
     """
     Base class for Pairwise Difference Learning.
     """
-
+    
     @staticmethod
     def pair_input(X1, X2):  # -> tuple[pd.DataFrame, pd.DataFrame]:
         X_pair = X1.merge(X2, how="cross")
@@ -61,6 +61,80 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
     def pair_output_difference(y1: pd.Series, y2: pd.Series, nb_classes: int) -> pd.Series:
         """For MultiClassClassification base on difference only"""
         y_pair = pd.DataFrame(y1).merge(y2, how="cross")
+        y_pair_diff = (y_pair.iloc[:, 1] != y_pair.iloc[:, 0]).astype(int)
+        assert y_pair_diff.nunique() <= 2, f'should only be 0s and 1s {y_pair_diff.unique()}'
+        return y_pair_diff
+
+    @staticmethod
+    def pair_input_training(X1, X2):
+        # Add index columns to track positions
+        X1 = X1.copy()
+        X2 = X2.copy()
+        X1['__idx1'] = range(len(X1))
+        X2['__idx2'] = range(len(X2))
+
+        # Cartesian merge (cross join)
+        X_pair = X1.merge(X2, how="cross")
+
+        # Filter to upper triangle + diagonal
+        X_pair = X_pair[X_pair['__idx1'] <= X_pair['__idx2']].reset_index(drop=True)
+
+        # Compute feature-wise absolute differences
+        x1_pair = X_pair[[f'{col}_x' for col in X1.columns if col != '__idx1']].rename(
+            columns={f'{col}_x': f'{col}_diff' for col in X1.columns if col != '__idx1'})
+        x2_pair = X_pair[[f'{col}_y' for col in X1.columns if col != '__idx1']].rename(
+            columns={f'{col}_y': f'{col}_diff' for col in X1.columns if col != '__idx1'})
+
+        try:
+            calculate_difference = (x1_pair - x2_pair).abs()
+        except:
+            raise ValueError("PairwiseDifference: Non-numeric features detected.")
+
+        # Combine everything
+        X_pair = pd.concat([X_pair, calculate_difference], axis='columns')
+
+        # Create symmetric version
+        x2_pair_sym = X_pair[[f'{col}_x' for col in X1.columns if col != '__idx1']].rename(
+            columns={f'{col}_x': f'{col}_y' for col in X1.columns if col != '__idx1'})
+        x1_pair_sym = X_pair[[f'{col}_y' for col in X1.columns if col != '__idx1']].rename(
+            columns={f'{col}_y': f'{col}_x' for col in X1.columns if col != '__idx1'})
+        X_pair_sym = pd.concat([x1_pair_sym, x2_pair_sym, (x2_pair - x1_pair).abs()], axis='columns')
+
+        # Drop index helper columns
+        X_pair = X_pair.drop(columns=['__idx1', '__idx2'])
+        X_pair_sym = X_pair_sym.reset_index(drop=True)
+
+        return X_pair, X_pair_sym
+
+    @staticmethod
+    def pair_output_training(y1: pd.Series, y2: pd.Series) -> pd.Series:
+        """For regresion. beware this is different from regression this is b-a not a-b"""
+        y1 = pd.DataFrame(y1)
+        y2 = pd.DataFrame(y2)
+        y1['__idx1'] = range(len(y1))
+        y2['__idx2'] = range(len(y2))
+        
+        y_pair = y1.merge(y2, how="cross")
+
+        y_pair = y_pair[y_pair['__idx1'] <= y_pair['__idx2']].reset_index(drop=True)
+        y_pair = y_pair.drop(columns=['__idx1', '__idx2'])
+
+        y_pair_diff = y_pair.iloc[:, 1] - y_pair.iloc[:, 0]
+        return y_pair_diff
+
+    @staticmethod
+    def pair_output_difference_training(y1: pd.Series, y2: pd.Series, nb_classes: int) -> pd.Series:
+        """For MultiClassClassification base on difference only"""
+        y1 = pd.DataFrame(y1)
+        y2 = pd.DataFrame(y2)
+        y1['__idx1'] = range(len(y1))
+        y2['__idx2'] = range(len(y2))
+
+        y_pair = y1.merge(y2, how="cross")
+
+        y_pair = y_pair[y_pair['__idx1'] <= y_pair['__idx2']].reset_index(drop=True)
+        y_pair = y_pair.drop(columns=['__idx1', '__idx2'])
+
         y_pair_diff = (y_pair.iloc[:, 1] != y_pair.iloc[:, 0]).astype(int)
         assert y_pair_diff.nunique() <= 2, f'should only be 0s and 1s {y_pair_diff.unique()}'
         return y_pair_diff
@@ -229,8 +303,8 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         self.feature_names_in_ = X.columns
         self.nb_classes_ = self.y_train_.nunique()
         self._estimate_prior()
-        X_pair, _ = PairwiseDifferenceBase.pair_input(self.X_train_, self.X_train_)
-        y_pair_diff = PairwiseDifferenceBase.pair_output_difference(self.y_train_, self.y_train_, self.nb_classes_)
+        X_pair, _ = PairwiseDifferenceBase.pair_input_training(self.X_train_, self.X_train_)
+        y_pair_diff = PairwiseDifferenceBase.pair_output_difference_training(self.y_train_, self.y_train_, self.nb_classes_)
         # todo add assert on y_pair_diff: min<0  , max>0 and dtype float not uint
         self.estimator.fit(X_pair, y_pair_diff)
         #  plot scatter train improvement vs test improvement
