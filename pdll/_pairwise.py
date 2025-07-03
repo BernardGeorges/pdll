@@ -18,6 +18,8 @@ from sklearn.utils.validation import check_is_fitted
 from scipy.special import softmax
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
+from goodpoints.util_experiments import run_kernel_thinning_experiment
+
 
 # todo Developing scikit-learn estimators: https://scikit-learn.org/stable/developers/develop.html    and this for common term    https://scikit-learn.org/stable/glossary.html
 # todo follow this https://scikit-learn.org/stable/auto_examples/developing_estimators/sklearn_is_fitted.html#sphx-glr-auto-examples-developing-estimators-sklearn-is-fitted-py
@@ -297,6 +299,29 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         self._estimate_prior()
         X_pair, _ = PairwiseDifferenceBase.pair_input_training(self.X_train_, self.X_train_)
         y_pair_diff = PairwiseDifferenceBase.pair_output_difference_training(self.y_train_, self.y_train_, self.nb_classes_)
+        
+        # If X_data is a DataFrame, convert to numpy array
+        if hasattr(X_pair, "values"):
+            X_np = X_pair.values
+        else:
+            X_np = X_pair
+
+        d = X_np.shape[1]
+        # A good default for var is the average variance across features
+        var = float(np.mean(np.var(X_np, axis=0)))
+
+        params_p = {
+            "name": "gauss",         # or another name if your data is not Gaussian
+            "var": var,
+            "d": d,
+            "saved_samples": False   # or True if you want to indicate these are real samples
+        }
+        
+        params_k_split = {"name": "gauss", "var": 1., "d": 2}
+        params_k_swap = {"name": "gauss", "var": 1., "d": 2}
+        
+        run_kernel_thinning_experiment(3, params_p, params_k_split, params_k_swap, rep_ids=[0], delta=0.01, store_K=False, rerun=False, verbose=True, X_data=X_pair)
+        
         # todo add assert on y_pair_diff: min<0  , max>0 and dtype float not uint
         self.estimator.fit(X_pair, y_pair_diff)
         #  plot scatter train improvement vs test improvement
