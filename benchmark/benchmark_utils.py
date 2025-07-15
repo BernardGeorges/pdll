@@ -46,7 +46,7 @@ def decode_args():
 
 args = decode_args()
 HYPER_PARAM_OPT = False
-DATASET_SIZE_PAPER = 195
+DATASET_SIZE_PAPER = 80
 INNER_FOLDS = 3
 REPEATS = 5
 FOLDS = 5

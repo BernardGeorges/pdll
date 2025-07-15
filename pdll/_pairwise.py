@@ -18,7 +18,11 @@ from sklearn.utils.validation import check_is_fitted
 from scipy.special import softmax
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
-from goodpoints.util_experiments import run_kernel_thinning_experiment
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pdll','goodpoints', 'examples', 'gkt')))
+from util_k_mmd import kernel_eval
+from goodpoints import kt
+from functools import partial
 
 
 # todo Developing scikit-learn estimators: https://scikit-learn.org/stable/developers/develop.html    and this for common term    https://scikit-learn.org/stable/glossary.html
@@ -292,36 +296,43 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
             PairwiseDifferenceBase.check_output(y)
         self.classes_ = sklearn.utils.multiclass.unique_labels(y)  # Store the classes seen during fit
 
-        self.X_train_ = X
+        #self.X_train_ = X
+        #self.y_train_ = y
+        
+        var = 1.
+        params_k_swap = {"name": "gauss", "var": var, "d": 2}
+        params_k_split = {"name": "gauss_rt", "var": var/2., "d": 2}
+        m = 1
+        delta = 0.5
+        seed = 9876543
+        store_K = False
+        split_kernel = partial(kernel_eval, params_k=params_k_split)
+        swap_kernel = partial(kernel_eval, params_k=params_k_swap)
+        
         self.y_train_ = y
+        self.X_train_ = X
         self.feature_names_in_ = X.columns
         self.nb_classes_ = self.y_train_.nunique()
         self._estimate_prior()
         X_pair, _ = PairwiseDifferenceBase.pair_input_training(self.X_train_, self.X_train_)
         y_pair_diff = PairwiseDifferenceBase.pair_output_difference_training(self.y_train_, self.y_train_, self.nb_classes_)
         
-        # If X_data is a DataFrame, convert to numpy array
+        print(f"Pre X_pair.shape: {X_pair.shape}")
+        
         if hasattr(X_pair, "values"):
-            X_np = X_pair.values
+            X_thin = X_pair.values
         else:
-            X_np = X_pair
-
-        d = X_np.shape[1]
-        # A good default for var is the average variance across features
-        var = float(np.mean(np.var(X_np, axis=0)))
-
-        params_p = {
-            "name": "gauss",         # or another name if your data is not Gaussian
-            "var": var,
-            "d": d,
-            "saved_samples": False   # or True if you want to indicate these are real samples
-        }
+            X_thin = X_pair
+            
         
-        params_k_split = {"name": "gauss", "var": 1., "d": 2}
-        params_k_swap = {"name": "gauss", "var": 1., "d": 2}
+        coresets = kt.thin(X_thin, m, split_kernel, swap_kernel, delta=delta, seed=seed, store_K=store_K) # try
         
-        run_kernel_thinning_experiment(3, params_p, params_k_split, params_k_swap, rep_ids=[0], delta=0.01, store_K=False, rerun=False, verbose=True, X_data=X_pair)
+        X_pair = X_pair.iloc[coresets]
+        y_pair_diff = y_pair_diff.iloc[coresets]
         
+        print(f"Pos X_pair.shape: {X_pair.shape}")      
+        
+        # A good default for var is the average variance across features              
         # todo add assert on y_pair_diff: min<0  , max>0 and dtype float not uint
         self.estimator.fit(X_pair, y_pair_diff)
         #  plot scatter train improvement vs test improvement
@@ -464,7 +475,14 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
                 raise NotImplementedError()
             else:
                 def f(predictions_proba_similarity: pd.Series) -> pd.Series:
-                    df = pd.DataFrame({'start': self.y_train_.reset_index(drop=True), 'similarity': predictions_proba_similarity})
+                    # Ensure both Series have the same length and reset indices to avoid alignment issues
+                    y_train_reset = self.y_train_.reset_index(drop=True)
+                    predictions_reset = predictions_proba_similarity.reset_index(drop=True)
+                    
+                    # Verify they have the same length
+                    assert len(y_train_reset) == len(predictions_reset), f"Length mismatch: y_train={len(y_train_reset)}, predictions={len(predictions_reset)}"
+                    
+                    df = pd.DataFrame({'start': y_train_reset, 'similarity': predictions_reset})
                     mean = df.groupby('start', observed=False).mean()['similarity']
                     return mean
 
