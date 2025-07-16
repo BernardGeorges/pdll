@@ -309,28 +309,27 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         split_kernel = partial(kernel_eval, params_k=params_k_split)
         swap_kernel = partial(kernel_eval, params_k=params_k_swap)
         
-        self.y_train_ = y
-        self.X_train_ = X
+        print(f"Pre X_pair.shape: {X.shape}")
+        
+        if hasattr(X, "values"):
+            X_thin = X.values
+        else:
+            X_thin = X
+            
+        
+        coresets = kt.thin(X_thin, m, split_kernel, swap_kernel, delta=delta, seed=seed, store_K=store_K)
+        
+        
+        self.y_train_ = y.iloc[coresets]
+        self.X_train_ = X.iloc[coresets]
+        
+        print(f"Pos X_pair.shape: {self.X_train_.shape}")    
+         
         self.feature_names_in_ = X.columns
         self.nb_classes_ = self.y_train_.nunique()
         self._estimate_prior()
         X_pair, _ = PairwiseDifferenceBase.pair_input_training(self.X_train_, self.X_train_)
-        y_pair_diff = PairwiseDifferenceBase.pair_output_difference_training(self.y_train_, self.y_train_, self.nb_classes_)
-        
-        print(f"Pre X_pair.shape: {X_pair.shape}")
-        
-        if hasattr(X_pair, "values"):
-            X_thin = X_pair.values
-        else:
-            X_thin = X_pair
-            
-        
-        coresets = kt.thin(X_thin, m, split_kernel, swap_kernel, delta=delta, seed=seed, store_K=store_K) # try
-        
-        X_pair = X_pair.iloc[coresets]
-        y_pair_diff = y_pair_diff.iloc[coresets]
-        
-        print(f"Pos X_pair.shape: {X_pair.shape}")      
+        y_pair_diff = PairwiseDifferenceBase.pair_output_difference_training(self.y_train_, self.y_train_, self.nb_classes_) 
         
         # A good default for var is the average variance across features              
         # todo add assert on y_pair_diff: min<0  , max>0 and dtype float not uint

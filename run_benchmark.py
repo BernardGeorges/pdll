@@ -10,6 +10,7 @@ from sklearn.model_selection import RepeatedStratifiedKFold, cross_validate
 from sklearn.model_selection import ParameterGrid
 from tqdm import tqdm
 from datetime import datetime
+import traceback
 from pdll import PairwiseDifferenceClassifier
 from benchmark.benchmark_utils import *
 
@@ -437,7 +438,8 @@ if __name__ == '__main__':
             #    print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
             #    continue
             except Exception as e:
-                raise
+                #raise
+                # run next dataset / note datasets id that did not run
                 if len(results) == 0:
                     # error in the first dataset. Probably a new error.
                     raise
@@ -474,7 +476,7 @@ if __name__ == '__main__':
         if len(df) >= 3:
             save_results(df, f'{path}/{file}')
 
-        if len(df) > 100:
+        if len(df) >= 80:
             quick_analysis(df, classifier_name, classifier_t0)
 
     print(f'end time {timedelta(seconds=int(time.time() - t0))}')
