@@ -371,6 +371,7 @@ if __name__ == '__main__':
     datasets = get_multi_class_datasets(number_instances_minimum=number_instances_minimum, cmd_dataset_id=cmd_dataset_id)
 
     t0 = time.time()
+    failed_dataset = []
     for classifier_name in classifier_names:
         print(classifier_name, '####################################################', flush=True)
         if HYPER_PARAM_OPT and classifier_name not in classifier_config_dict:
@@ -402,6 +403,8 @@ if __name__ == '__main__':
             description = f"{classifier_name} ID:{data_id} done:{len(results)}"
             pbar.set_description(description)
             if resume and df is not None and data_id in df.data_id.values:
+                continue
+            if data_id in failed_dataset:
                 continue
             small_tmp_file = f'{path}tmp/{get_file(classifier_name, id=cmd_dataset_id[0] if cmd_dataset_id is not None else None)}'
             print(small_tmp_file, os.path.isfile(small_tmp_file))
@@ -437,15 +440,16 @@ if __name__ == '__main__':
             #    print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
             #    continue
             except Exception as e:
-                raise
+                #raise
                 if len(results) == 0:
                     # error in the first dataset. Probably a new error.
                     raise
                 _exc_info = sys.exc_info()
                 error_message = str(e)
                 print('error in data ID:', data_id, '\t', e)
-                if error_message == "":
-                    traceback.print_exception(*_exc_info)
+                failed_dataset.append(data_id)
+                #if error_message == "":
+                #    traceback.print_exception(*_exc_info)
                 continue
 
             result.update(datasets.loc[data_id].to_dict())
@@ -473,9 +477,9 @@ if __name__ == '__main__':
         df[columns] = datasets.loc[df.data_id, columns].reset_index(drop=True)
         if len(df) >= 3:
             save_results(df, f'{path}/{file}')
-
         if len(df) > 100:
             quick_analysis(df, classifier_name, classifier_t0)
+            print(failed_dataset)
 
     print(f'end time {timedelta(seconds=int(time.time() - t0))}')
     # stop_mpi_workers()
