@@ -411,6 +411,8 @@ if __name__ == '__main__':
                     print('resuming from', small_tmp_file)
                     results.append(small_df.to_dict('records')[0])
                     continue
+            if data_id in [41978, 41976, 41977, 1447, 1065, 1063]:
+                continue
             try:
                 X, y = get_processed_classification_dataset(data_id, number_classes)
                 if X is None:
@@ -437,15 +439,15 @@ if __name__ == '__main__':
             #    print('error in data ID:', data_id, '\t _ArrayMemoryError:', e)
             #    continue
             except Exception as e:
-                raise
+                #raise
                 if len(results) == 0:
                     # error in the first dataset. Probably a new error.
                     raise
                 _exc_info = sys.exc_info()
                 error_message = str(e)
                 print('error in data ID:', data_id, '\t', e)
-                if error_message == "":
-                    traceback.print_exception(*_exc_info)
+                #if error_message == "":
+                #    traceback.print_exception(*_exc_info)
                 continue
 
             result.update(datasets.loc[data_id].to_dict())
