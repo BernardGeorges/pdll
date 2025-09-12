@@ -46,7 +46,7 @@ def decode_args():
 
 args = decode_args()
 HYPER_PARAM_OPT = False
-DATASET_SIZE_PAPER = 195
+DATASET_SIZE_PAPER = 80
 INNER_FOLDS = 3
 REPEATS = 5
 FOLDS = 5
@@ -85,7 +85,7 @@ cmd_dataset_id = args['data']
 
 if args['model'] is None:
     args['model'] = [
-        'GaussianNB',
+        'SVC',
     ]
 args['model'] = [classifier_dict[int(m)] if m.isdigit() else m for m in args['model']]
 classifier_names = args['model']

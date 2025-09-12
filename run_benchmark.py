@@ -477,7 +477,7 @@ if __name__ == '__main__':
         df[columns] = datasets.loc[df.data_id, columns].reset_index(drop=True)
         if len(df) >= 3:
             save_results(df, f'{path}/{file}')
-        if len(df) > 100:
+        if len(df) > 50:
             quick_analysis(df, classifier_name, classifier_t0)
             print(failed_dataset)
 
