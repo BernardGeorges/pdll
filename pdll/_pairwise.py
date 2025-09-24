@@ -30,26 +30,40 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
     """
 
     @staticmethod
-    def pair_input(X1, X2):  # -> tuple[pd.DataFrame, pd.DataFrame]:
-        X_pair = X1.merge(X2, how="cross")
-        x1_pair = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_diff' for column in X1.columns})
-        x2_pair = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_diff' for column in X1.columns})
+    def pair_input(X1: pd.DataFrame, X2: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        # Ensure column names are strings
+        X1 = X1.copy()
+        X2 = X2.copy()
+        X1.columns = X1.columns.astype(str)
+        X2.columns = X2.columns.astype(str)
 
-        #try:
-        #    calculate_difference = x1_pair - x2_pair
-        #except:
-        #    raise ValueError("PairwiseDifference: The input data is not compatible with the subtraction operation. Either transform all data to numeric features or use a ColumnTransformer to transform the data.")
-        # It means that the input data is not compatible with the subtraction operation.
-        # Simply turn all your data into numbers
+        # Cross join
+        X_pair_initial = X1.merge(X2, how="cross")
 
-        #X_pair = pd.concat([X_pair, calculate_difference], axis='columns')
-        # Symmetric
-        x2_pair_sym = X_pair[[f'{column}_x' for column in X1.columns]].rename(columns={f'{column}_x': f'{column}_y' for column in X1.columns})
-        x1_pair_sym = X_pair[[f'{column}_y' for column in X1.columns]].rename(columns={f'{column}_y': f'{column}_x' for column in X1.columns})
-        X_pair_sym = pd.concat([x1_pair_sym, x2_pair_sym], axis='columns')
+        # Rename with suffixes for difference calculation
+        x1_pair = X_pair_initial[[f"{col}_x" for col in X1.columns]].rename(
+            columns={f"{col}_x": f"{col}_diff" for col in X1.columns}
+        )
+        x2_pair = X_pair_initial[[f"{col}_y" for col in X1.columns]].rename(
+            columns={f"{col}_y": f"{col}_diff" for col in X1.columns}
+        )
+
+        # Calculate differences
+        try:
+            calculate_difference = x1_pair - x2_pair
+        except Exception:
+            raise ValueError(
+                "PairwiseDifference: The input data is not compatible with subtraction. "
+                "Ensure all features are numeric or use a ColumnTransformer."
+            )
+
+        # Build combined DataFrames
+        X_pair_initial = pd.concat([X_pair_initial, calculate_difference], axis="columns")
+        X_pair = pd.concat([X1, calculate_difference], axis="columns")
+        X_pair_sym = pd.concat([X2, x2_pair - x1_pair], axis="columns")
 
         return X_pair, X_pair_sym
-
+    
     @staticmethod
     def pair_output(y1: pd.Series, y2: pd.Series) -> pd.Series:
         """For regresion. beware this is different from regression this is b-a not a-b"""

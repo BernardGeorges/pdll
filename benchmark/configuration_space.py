@@ -142,7 +142,14 @@ if __name__ == '__main__':
         meta.append({'name': key, '#parameters': len(config_dict), '#combinations': l})
         if l < 56:
             print(f'{key} has only {l} < 56 combinations. It will not take advantage of the parallelism.')
-    from pairwise.benchmark_utils import classifier_dict, incompatible_classifiers
+    try:
+        from pairwise.benchmark_utils import classifier_dict, incompatible_classifiers
+    except ImportError:
+        # If pairwise is a local folder, try relative import
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        from benchmark_utils import classifier_dict, incompatible_classifiers
 
     missing_hpo = set(classifier_dict.values()) - (set(classifier_config_dict.keys()))
     assert len(missing_hpo) == 0, f"Missing hpo for {missing_hpo}"
