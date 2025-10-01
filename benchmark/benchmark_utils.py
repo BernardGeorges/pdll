@@ -85,7 +85,7 @@ cmd_dataset_id = args['data']
 
 if args['model'] is None:
     args['model'] = [
-        'GaussianNB',
+        'MLPClassifier',
     ]
 args['model'] = [classifier_dict[int(m)] if m.isdigit() else m for m in args['model']]
 classifier_names = args['model']

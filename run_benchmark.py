@@ -411,7 +411,7 @@ if __name__ == '__main__':
                     print('resuming from', small_tmp_file)
                     results.append(small_df.to_dict('records')[0])
                     continue
-            if data_id in [41978, 41976, 41977, 1447, 1065, 1063]:
+            if data_id in [41978, 41976, 1447, 40663, 1554, 987, 41919, 40663]:
                 continue
             try:
                 X, y = get_processed_classification_dataset(data_id, number_classes)
