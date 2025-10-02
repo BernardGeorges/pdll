@@ -38,7 +38,7 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
         
         X_pair = X1.merge(X2, how="cross")
         
-        X_pair = X_pair[X_pair['__idx1'] < X_pair['__idx2']].reset_index(drop=True)
+        X_pair = X_pair[X_pair['__idx1'] <= X_pair['__idx2']].reset_index(drop=True)
         x1_pair = X_pair[[f'{col}_x' for col in X1.columns if col != '__idx1']].rename(columns={f'{col}_x': f'{col}_diff' for col in X1.columns if col != '__idx1'})
         x2_pair = X_pair[[f'{col}_y' for col in X1.columns if col != '__idx1']].rename(columns={f'{col}_y': f'{col}_diff' for col in X1.columns if col != '__idx1'})
 
@@ -72,7 +72,7 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
         
         y_pair = y1.merge(y2, how="cross")
 
-        y_pair = y_pair[y_pair['__idx1'] < y_pair['__idx2']].reset_index(drop=True)
+        y_pair = y_pair[y_pair['__idx1'] <= y_pair['__idx2']].reset_index(drop=True)
         y_pair = y_pair.drop(columns=['__idx1', '__idx2'])
 
         y_pair_diff = y_pair.iloc[:, 1] - y_pair.iloc[:, 0]
@@ -88,7 +88,7 @@ class PairwiseDifferenceBase(sklearn.base.BaseEstimator):
 
         y_pair = y1.merge(y2, how="cross")
 
-        y_pair = y_pair[y_pair['__idx1'] < y_pair['__idx2']].reset_index(drop=True)
+        y_pair = y_pair[y_pair['__idx1'] <= y_pair['__idx2']].reset_index(drop=True)
         y_pair = y_pair.drop(columns=['__idx1', '__idx2'])
 
         y_pair_diff = (y_pair.iloc[:, 1] != y_pair.iloc[:, 0]).astype(int)
