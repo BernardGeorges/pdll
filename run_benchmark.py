@@ -371,7 +371,8 @@ if __name__ == '__main__':
     datasets = get_multi_class_datasets(number_instances_minimum=number_instances_minimum, cmd_dataset_id=cmd_dataset_id)
 
     t0 = time.time()
-    faileddataset = []
+    i = 0
+    failed_dataset = []
     for classifier_name in classifier_names:
         print(classifier_name, '####################################################', flush=True)
         if HYPER_PARAM_OPT and classifier_name not in classifier_config_dict:
@@ -445,7 +446,7 @@ if __name__ == '__main__':
                 _exc_info = sys.exc_info()
                 error_message = str(e)
                 print('error in data ID:', data_id, '\t', e)
-                faileddataset.append(data_id)
+                failed_dataset.append(data_id)
                 #if error_message == "":
                 #    traceback.print_exception(*_exc_info)
                 continue
@@ -462,6 +463,8 @@ if __name__ == '__main__':
                     checkpoint(results=[results[-1]], path=f'{path}tmp/{get_file(classifier_name, cmd_dataset_id[i])}')
                 else:
                     checkpoint(results=results, path=tmp_file)
+            print(f'-- done {i + 1}/{min(DATASET_SIZE_PAPER, len(datasets))} datasets --')
+            i += 1
         if len(results) == 0:
             continue
         df = pd.DataFrame(results)
@@ -478,7 +481,8 @@ if __name__ == '__main__':
 
         if len(df) > 70:
             quick_analysis(df, classifier_name, classifier_t0)
-            print(faileddataset)
+            print(failed_dataset)
+            print(f'-- done {i}/{min(DATASET_SIZE_PAPER, len(datasets))} datasets --')
 
     print(f'end time {timedelta(seconds=int(time.time() - t0))}')
     # stop_mpi_workers()
