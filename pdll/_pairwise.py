@@ -295,8 +295,8 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         self.feature_names_in_ = X.columns
         self.nb_classes_ = self.y_train_.nunique()
         self._estimate_prior()
-        X_pair, _ = PairwiseDifferenceBase.pair_input_training(self.X_train_, self.X_train_)
-        y_pair_diff = PairwiseDifferenceBase.pair_output_difference_training(self.y_train_, self.y_train_, self.nb_classes_)
+        X_pair, _ = PairwiseDifferenceBase.pair_input(self.X_train_, self.X_train_)
+        y_pair_diff = PairwiseDifferenceBase.pair_output_difference(self.y_train_, self.y_train_, self.nb_classes_)
         # todo add assert on y_pair_diff: min<0  , max>0 and dtype float not uint
         self.estimator.fit(X_pair, y_pair_diff)
         #  plot scatter train improvement vs test improvement
