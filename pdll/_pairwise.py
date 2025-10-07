@@ -295,9 +295,36 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
             PairwiseDifferenceBase.check_input(X)
             PairwiseDifferenceBase.check_output(y)
         self.classes_ = sklearn.utils.multiclass.unique_labels(y)  # Store the classes seen during fit
+
+        #self.X_train_ = X
+        #self.y_train_ = y
         
-        self.X_train_ = X
-        self.y_train_ = y 
+        var = 1.
+        params_k_swap = {"name": "gauss", "var": var, "d": 2}
+        params_k_split = {"name": "gauss_rt", "var": var/2., "d": 2}
+        m = 1
+        delta = 0.5
+        seed = 9876543
+        store_K = False
+        split_kernel = partial(kernel_eval, params_k=params_k_split)
+        swap_kernel = partial(kernel_eval, params_k=params_k_swap)
+        
+        print(f"Pre X_pair.shape: {X.shape}")
+        
+        if hasattr(X, "values"):
+            X_thin = X.values
+        else:
+            X_thin = X
+            
+        
+        coresets = kt.thin(X_thin, m, split_kernel, swap_kernel, delta=delta, seed=seed, store_K=store_K)
+        
+        
+        self.y_train_ = y.iloc[coresets]
+        self.X_train_ = X.iloc[coresets]
+        
+        print(f"Pos X_pair.shape: {self.X_train_.shape}")    
+         
         self.feature_names_in_ = X.columns
         self.nb_classes_ = self.y_train_.nunique()
         self._estimate_prior()
@@ -317,7 +344,6 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
         """
         if X_anchors is None:
             X_anchors = self.X_train_
-        
             # but I also need to change the self.y_train_ at the higher call
         check_is_fitted(self)
         if self.check_input:
@@ -334,33 +360,6 @@ class PairwiseDifferenceClassifier(sklearn.base.BaseEstimator, sklearn.base.Clas
                 proba = np.zeros((n_samples, 2), dtype=float)
                 proba[range(n_samples), predictions] = 1.
                 return proba
-
-        var = 1.
-        params_k_swap = {"name": "gauss", "var": var, "d": 2}
-        params_k_split = {"name": "gauss_rt", "var": var/2., "d": 2}
-        m = 1
-        delta = 0.5
-        seed = 9876543
-        store_K = False
-        split_kernel = partial(kernel_eval, params_k=params_k_split)
-        swap_kernel = partial(kernel_eval, params_k=params_k_swap)
-        
-        print(f"Pre X_pair.shape: {X.shape}")
-        
-        if hasattr(X, "values"):
-            X_thin = X_pair.values
-        else:
-            X_thin = X_pair
-            
-        
-        coresets = kt.thin(X_thin, m, split_kernel, swap_kernel, delta=delta, seed=seed, store_K=store_K)
-        
-        
-        X_pair = X_pair.iloc[coresets]
-        X_pair_sym = X_pair_sym.iloc[coresets]
-        
-        print(f"Pos X_pair.shape: {self.X_train_.shape}")   
-
 
         predictions_proba_difference: np.ndarray = predict_proba(X_pair)
         predictions_proba_difference_sym: np.ndarray = predict_proba(X_pair_sym)
