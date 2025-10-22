@@ -373,6 +373,7 @@ if __name__ == '__main__':
     t0 = time.time()
     i = 0
     failed_dataset = []
+    desired_datasets = [1025, 1026, 41997, 42003, 1556, 1048, 42011, 1054, 42016, 42021, 41511, 40, 1066, 43, 42026, 42031, 48, 1073, 42036, 53, 42041, 59, 61, 42046, 1600, 42051, 42056, 1100, 42066, 42071, 1115, 41568, 1121, 41583, 42098, 44149, 44151, 45688, 44154, 1167, 164, 42665, 187, 714, 42186, 42700, 717, 719, 721, 724, 726, 730, 731, 732, 733, 40669, 736, 744, 745, 746, 4329, 748, 749, 750, 40681, 753, 754, 40690, 756, 762, 763, 764, 765, 766, 767, 768, 769, 40700, 771, 773, 40710, 775, 776, 778, 779, 782, 783, 784, 788, 789, 42261, 792, 793, 794, 796, 801, 805, 808, 811, 812, 814, 818, 820, 824, 825, 44344, 829, 830, 832, 838, 336, 337, 850, 43859, 853, 855, 860, 862, 863, 868, 869, 870, 873, 876, 877, 878, 879, 880, 884, 885, 886, 888, 889, 895, 896, 900, 1413, 902, 906, 907, 908, 909, 911, 915, 916, 918, 920, 921, 922, 925, 926, 932, 933, 935, 936, 937, 1450, 941, 943, 1455, 946, 955, 444, 446, 448, 965, 969, 23499, 973, 974, 464, 1488, 1490, 1495, 1498, 475, 1499, 1500, 41950, 1506, 996, 1511, 1005, 1006, 1011, 1012, 1524]
     for classifier_name in classifier_names:
         print(classifier_name, '####################################################', flush=True)
         if HYPER_PARAM_OPT and classifier_name not in classifier_config_dict:
@@ -401,6 +402,8 @@ if __name__ == '__main__':
         # pbar = tqdm(zip(datasets.iloc[145:].data_id, datasets.iloc[145:].NumberOfClasses), total=DATASET_SIZE_PAPER)
         # pbar = tqdm(zip([464], [2]), total=1)  # smallest
         for i, (data_id, number_classes) in enumerate(pbar):
+            if data_id not in desired_datasets:
+                continue
             description = f"{classifier_name} ID:{data_id} done:{len(results)}"
             pbar.set_description(description)
             if resume and df is not None and data_id in df.data_id.values:
